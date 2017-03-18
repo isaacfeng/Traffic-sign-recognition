@@ -35,20 +35,34 @@ for image in images28[:5]:
 
 labels_a = np.array(labels)
 images_a = np.array(images28)
+
 images_test_a = np.array(images28_test)
 print("labels: ", labels_a.shape)
 print('images: ', images_a.shape)
 print('test images: ', images_test_a.shape)
 
+buff = np.arange(0, 39209)
+np.random.shuffle(buff)
+labels_shuffled = labels_a
+images_shuffled = images_a
+
+for i in range(39209):
+    j = buff[i]
+    labels_shuffled[i] = labels_a[j]
+    images_shuffled[i] = images_a[j]
+
 labels_onehot = np.zeros((39209, 43))
 labels_onehot[np.arange(39209), labels_a] = 1
 print("labels one hot: ", labels_onehot[10000:10005])
 
-batch_images = np.zeros((49, 800, 28, 28, 3))
-batch_labels = np.zeros((49, 800, 43))
-for i in range(49):
-    batch_images[i] = images_a[800*i:800*i+800]
-    batch_labels[i] = labels_onehot[800*i:800*i+800]
+labels_shuffled_onehot = np.zeros((39209, 43))
+labels_shuffled_onehot[np.arange(39209), labels_shuffled] = 1
+
+batch_images = np.zeros((35, 800, 28, 28, 3))
+batch_labels = np.zeros((35, 800, 43))
+for i in range(35):
+    batch_images[i] = images_shuffled[800*i:800*i+800]
+    batch_labels[i] = labels_shuffled_onehot[800*i:800*i+800]
 
 print("batch_images: ", batch_images[8].shape)
 print("label_images: ", batch_labels[8].shape)
@@ -102,14 +116,14 @@ predicted_labels = tf.argmax(y_conv, 1)
 sess.run(tf.global_variables_initializer())
 
 for i in range(10000):
-  _, loss_value = sess.run([train_step, cross_entropy],feed_dict={x: batch_images[i % 49], y_: batch_labels[i % 49], keep_prob: 0.5})
+  _, loss_value = sess.run([train_step, cross_entropy],feed_dict={x: batch_images[i % 35], y_: batch_labels[i % 35], keep_prob: 0.5})
   if i % 10 == 0:
     print i
     print("Loss: ", loss_value)
     loss_buffer[i/10] = loss_value
 
-print("test accuracy %g"%accuracy.eval(feed_dict={
-    x: images_a[0:39209], y_: labels_onehot[0:39209], keep_prob: 1.0}))
+print("cross validation accuracy %g"%accuracy.eval(feed_dict={
+    x: images_shuffled[28000:39209], y_: labels_shuffled_onehot[28000:39209], keep_prob: 1.0}))
 
 result = predicted_labels.eval(feed_dict={x: images_test_a[0:12630], keep_prob: 1.0})
 
